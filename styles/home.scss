@@ -1,3 +1,15 @@
 h1 {
   color: tomato;
 }
+
+form {
+  display: flex;
+
+  input {
+    flex: 1;
+  }
+
+  button {
+    margin: 0 1em;
+  }
+}
