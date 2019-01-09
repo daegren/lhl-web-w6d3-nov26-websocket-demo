@@ -2,6 +2,7 @@ const WebSocket = require('ws');
 const SocketServer = WebSocket.Server;
 const express = require('express');
 const http = require('http');
+const uuid = require('uuid/v4');
 
 const PORT = 3001;
 
@@ -13,6 +14,10 @@ app.get('/', (req, res) => {
 
 const server = http.createServer(app);
 const wss = new SocketServer({ server });
+
+const messageDatabase = [];
+
+wss.broadcastJSON = obj => wss.broadcast(JSON.stringify(obj));
 
 wss.broadcast = data => {
   wss.clients.forEach(ws => {
@@ -27,10 +32,28 @@ wss.on('connection', ws => {
 
   ws.on('message', data => {
     console.log(`Got message from the client ${data}`);
-    wss.broadcast(data);
+    const objData = JSON.parse(data);
+
+    switch (objData.type) {
+      case 'text-message':
+        const objectToBroadcast = {
+          id: uuid(),
+          date: new Date(),
+          content: objData.content,
+          type: 'text-message'
+        };
+        messageDatabase.push(objectToBroadcast);
+        wss.broadcastJSON(objectToBroadcast);
+        break;
+      default:
+    }
   });
 
-  ws.send('hello!');
+  const initialMessage = {
+    type: 'initial-messages',
+    messages: messageDatabase
+  };
+  ws.send(JSON.stringify(initialMessage));
 });
 
 server.listen(PORT, () => {

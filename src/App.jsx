@@ -11,7 +11,7 @@ class App extends Component {
   }
 
   componentDidMount() {
-    this.socket = new WebSocket('ws://localhost:3001');
+    this.socket = new WebSocket('ws://172.46.3.175:3001');
 
     this.socket.onopen = () => {
       console.log('Connected to WebSocket');
@@ -19,7 +19,19 @@ class App extends Component {
 
     this.socket.onmessage = payload => {
       console.log('Got message from server', payload);
-      this.setState({ messages: [...this.state.messages, payload.data] });
+      const json = JSON.parse(payload.data);
+
+      switch (json.type) {
+        case 'text-message':
+          this.setState({
+            messages: [...this.state.messages, json]
+          });
+          break;
+        case 'initial-messages':
+          this.setState({ messages: json.messages });
+          break;
+        default:
+      }
     };
 
     this.socket.onclose = () => {
@@ -45,7 +57,7 @@ class App extends Component {
         <main>
           <h2>Messages</h2>
           {this.state.messages.map(msg => (
-            <div className="message">{msg}</div>
+            <Message msg={msg} />
           ))}
         </main>
       </div>
@@ -60,7 +72,12 @@ class App extends Component {
     e.preventDefault();
     const { content } = this.state;
 
-    this.socket.send(content);
+    const objectToSend = {
+      type: 'text-message',
+      content
+    };
+
+    this.socket.send(JSON.stringify(objectToSend));
 
     this.setState({ content: '' });
   };
@@ -73,3 +90,13 @@ class App extends Component {
   // };
 }
 export default App;
+
+const Message = ({ msg }) => {
+  const date = new Date(msg.date);
+
+  return (
+    <div className="message" key={msg.id}>
+      {date.toLocaleString('en-CA')}: {msg.content}
+    </div>
+  );
+};
